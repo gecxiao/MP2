@@ -1,11 +1,14 @@
-package MP2
+package main
 
 import (
-	"log"
+	"./application"
+	"./network"
+	"bufio"
+	"fmt"
 	"net"
 	"os"
-	"./network"
-	"./application"
+	"strings"
+	"time"
 )
 
 func main() {
@@ -15,24 +18,36 @@ func main() {
 	arguments := os.Args
 	//Starts the server
 	client.Port = arguments[1]
+	control :=make(chan bool)
+	conns := make(chan map[string]net.Conn)
 	messages := make(chan application.Message)
-
-
-	//go routine handle for each process
-
-	//go channel to communicate and send message to destination
+	//go channel to communicate and send message to destination]
+	go handleExit(client, control, messages, conns)
 	for{
-		go network.Server(client, messages)
-		mes := <-messages
-		// need to use mes.R to find destination.
-		processMsg(mes.S, destination)
+		reader := bufio.NewReader(os.Stdin)
+		var cmd string
+		cmd, _ = reader.ReadString('\n')
+		if strings.TrimSpace(cmd) == "EXIT" {
+			fmt.Println("Server is exiting...")
+			//Sends the termination signal to all the connected clients
+			control <- true
+			time.Sleep(10)
+			return
+		}
 	}
 }
 
-
-
-func processMsg(from application.Process, to application.Process){
-	var m application.Message
-	m = application.GetInfo(from)
-	network.UnicastSend(to, m)
+func handleExit(server application.Process, control chan bool, messages chan application.Message,
+	conns chan map[string]net.Conn) {
+	for {
+		select {
+		case <- control:
+			return
+		default:
+			go network.Server(server, messages, conns)
+			mes := <- messages
+			cm := <- conns
+			network.Transfer(cm[mes.R], mes)
+		}
+	}
 }
