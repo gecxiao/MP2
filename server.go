@@ -18,9 +18,9 @@ func main() {
 	arguments := os.Args
 	//Starts the server
 	client.Port = arguments[1]
-	control :=make(chan bool)
-	conns := make(chan map[string]net.Conn)
-	messages := make(chan application.Message)
+	control :=make(chan bool, 1)
+	conns := make(chan net.Conn, 1)
+	messages := make(chan application.Message, 1)
 	//go channel to communicate and send message to destination]
 	go handleExit(client, control, messages, conns)
 	for{
@@ -38,16 +38,28 @@ func main() {
 }
 
 func handleExit(server application.Process, control chan bool, messages chan application.Message,
-	conns chan map[string]net.Conn) {
+	conns chan net.Conn) {
+	cm := make(map[string]net.Conn)
+	go network.Server(server, messages, conns)
 	for {
 		select {
 		case <- control:
 			return
 		default:
-			go network.Server(server, messages, conns)
 			mes := <- messages
-			cm := <- conns
-			network.Transfer(cm[mes.R], mes)
+			if mes.R == "server"{
+				c := <- conns
+				cm[mes.S.Id] = c
+			}else {
+				if cm[mes.R] != nil{
+					network.Transfer(cm[mes.R], mes)
+				}else{
+					errorMessage := application.Message{
+						M: "The user you want to send is not connected",
+					}
+					network.Transfer(cm[mes.S.Id], errorMessage)
+				}
+			}
 		}
 	}
 }

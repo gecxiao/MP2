@@ -1,10 +1,9 @@
 package application
 
 import (
-"bufio"
-"fmt"
-"os"
-"strings"
+	"bufio"
+	"os"
+	"strings"
 )
 
 type Process struct {
@@ -22,12 +21,15 @@ type Message struct {
 func GetInfo(client Process) Message {
 	//get the message from user and pack in into Message struct
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("please send application in this pattern: send 'username' 'YourMessage'\n")
 	text, _ := reader.ReadString('\n')
 	t := strings.Fields(text)
 	var m Message
-	m.R = t[1]
-	m.M = t[2]
-	m.S = client
+	if t[0] == "EXIT" {
+		m.M = "Exit"
+	}else{
+		m.R = t[1]
+		m.M = t[2]
+		m.S = client
+	}
 	return m
 }
