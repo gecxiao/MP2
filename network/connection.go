@@ -22,7 +22,6 @@ func handleConnection(c net.Conn, messages chan application.Message, conns chan 
 			}
 		}
 	}
-	c.Close()
 }
 
 func Server(server application.Process, messages chan application.Message, conns chan net.Conn) {

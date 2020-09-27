@@ -25,11 +25,12 @@ func receive(c net.Conn){
 		//Decode the message from server
 		mes := new(application.Message)
 		_ = decoder.Decode(mes)
-		fmt.Printf("Received '%s' from %s\n", mes.M, mes.S.Id)
 		if mes.M == "EXIT" {
 			fmt.Println("Exit the program.")
+			c.Close()
 			return
 		}
+		fmt.Printf("Received '%s' from %s\n", mes.M, mes.S.Id)
 	}
 }
 
@@ -51,6 +52,7 @@ func main(){
 		network.UnicastSend(conn, m)
 		if m.M == "EXIT"{
 			println("connection closed.")
+			conn.Close()
 			return
 		}
 		//termination signal from server, close as well.
