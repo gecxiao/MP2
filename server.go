@@ -44,6 +44,13 @@ func handleExit(server application.Process, control chan bool, messages chan app
 	for {
 		select {
 		case <- control:
+			shutdown := new(application.Message)
+			shutdown.M = "server is closed."
+			for username, conn := range cm{
+				shutdown.R = username
+				network.UnicastSend(conn, *shutdown)
+				conn.Close()
+			}
 			return
 		default:
 			mes := <- messages
@@ -52,12 +59,12 @@ func handleExit(server application.Process, control chan bool, messages chan app
 				cm[mes.S.Id] = c
 			}else {
 				if cm[mes.R] != nil{
-					network.Transfer(cm[mes.R], mes)
+					network.UnicastSend(cm[mes.R], mes)
 				}else{
 					errorMessage := application.Message{
 						M: "The user you want to send is not connected",
 					}
-					network.Transfer(cm[mes.S.Id], errorMessage)
+					network.UnicastSend(cm[mes.S.Id], errorMessage)
 				}
 			}
 		}

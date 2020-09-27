@@ -17,13 +17,3 @@ func UnicastSend(c net.Conn, m application.Message) {
 	_ = encoder.Encode(msg)
 	return
 }
-
-func Transfer(c net.Conn, m application.Message){
-	encoder := gob.NewEncoder(c)
-	msg := application.Message{
-		S: m.S,
-		R: m.R,
-		M: m.M,
-	}
-	_ = encoder.Encode(msg)
-}

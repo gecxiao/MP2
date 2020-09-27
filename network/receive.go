@@ -16,15 +16,14 @@ func handleConnection(c net.Conn, messages chan application.Message, conns chan 
 			if mes.M == "EXIT" {
 				messages <- *mes
 				conns <- nil
-				c.Close()
 				break
 			}
 			conns <- c
+		} else{
+			messages <- *mes
 		}
-		messages <- *mes
-
-		//transfer(c, *mes)
 	}
+	c.Close()
 }
 
 func Server(server application.Process, messages chan application.Message, conns chan net.Conn) {

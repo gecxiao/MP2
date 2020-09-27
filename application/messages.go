@@ -25,7 +25,9 @@ func GetInfo(client Process) Message {
 	t := strings.Fields(text)
 	var m Message
 	if t[0] == "EXIT" {
+		m.R = "server"
 		m.M = "Exit"
+		m.S = client
 	}else{
 		m.R = t[1]
 		m.M = t[2]
