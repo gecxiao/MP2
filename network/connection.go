@@ -12,15 +12,14 @@ func handleConnection(c net.Conn, messages chan application.Message, conns chan 
 		decoder := gob.NewDecoder(c)
 		mes := new(application.Message)
 		_ = decoder.Decode(mes)
+		messages <- *mes
 		if mes.R == "server"{
 			if mes.M == "EXIT" {
-				messages <- *mes
 				conns <- nil
 				break
+			}else{
+				conns <- c
 			}
-			conns <- c
-		} else{
-			messages <- *mes
 		}
 	}
 	c.Close()

@@ -37,10 +37,12 @@ func main() {
 	}
 }
 
-func handleExit(server application.Process, control chan bool, messages chan application.Message,
+func handleExit(client application.Process, control chan bool, messages chan application.Message,
 	conns chan net.Conn) {
 	cm := make(map[string]net.Conn)
-	go network.Server(server, messages, conns)
+	var server application.Process
+	server.Id = "server"
+	go network.Server(client, messages, conns)
 	for {
 		select {
 		case <- control:
@@ -63,9 +65,11 @@ func handleExit(server application.Process, control chan bool, messages chan app
 				}else{
 					errorMessage := application.Message{
 						M: "The user you want to send is not connected",
+						S: server,
 					}
 					network.UnicastSend(cm[mes.S.Id], errorMessage)
 				}
+
 			}
 		}
 	}

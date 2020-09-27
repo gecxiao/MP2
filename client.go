@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 )
 
 func dial(server application.Process)(c net.Conn){
@@ -44,14 +43,12 @@ func main(){
 	conn := dial(server)
 	initialMessage := application.Message{S: self, R: "server"}
 	network.UnicastSend(conn, initialMessage)
-	defer conn.Close()
 	go receive(conn)
 	fmt.Print("please send application in this pattern: send 'username' 'YourMessage'\n")
 	println("enter EXIT to quit.")
 	for{
 		m:= application.GetInfo(self)
 		network.UnicastSend(conn, m)
-		time.Sleep(10)
 		if m.M == "EXIT"{
 			println("connection closed.")
 			return
