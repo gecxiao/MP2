@@ -4,73 +4,43 @@ import (
 	"./application"
 	"./network"
 	"bufio"
-	"fmt"
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 func main() {
 	//construct TCP channels for all
 	//initialize the message channel to communicate
 	var client application.Process
+	var server application.Process
+	cm := make(map[string]net.Conn)
+	server.Id = "server"
 	arguments := os.Args
 	//Starts the server
 	client.Port = arguments[1]
-	control :=make(chan bool, 1)
-	conns := make(chan net.Conn, 1)
-	messages := make(chan application.Message, 1)
+	server.Port = arguments[1]
+	userControl :=make(chan bool, 1)
+	lnControl :=make(chan bool, 1)
 	//go channel to communicate and send message to destination]
-	go handleExit(client, control, messages, conns)
+	go getExit(userControl)
+	go network.Server(server, cm, lnControl)
+	<- userControl
+	network.ExitUsers(cm,lnControl)
+	return
+}
+
+func getExit(control chan bool){
 	for{
 		reader := bufio.NewReader(os.Stdin)
 		var cmd string
 		cmd, _ = reader.ReadString('\n')
 		if strings.TrimSpace(cmd) == "EXIT" {
-			fmt.Println("Server is exiting...")
 			//Sends the termination signal to all the connected clients
 			control <- true
-			time.Sleep(10)
-			return
 		}
 	}
 }
 
-func handleExit(client application.Process, control chan bool, messages chan application.Message,
-	conns chan net.Conn) {
-	cm := make(map[string]net.Conn)
-	var server application.Process
-	server.Id = "server"
-	go network.Server(client, messages, conns)
-	for {
-		select {
-		case <- control:
-			shutdown := new(application.Message)
-			shutdown.M = "EXIT"
-			for username, conn := range cm{
-				shutdown.R = username
-				network.UnicastSend(conn, *shutdown)
-			}
-			break
-		default:
-			mes := <- messages
-			if mes.R == "server"{
-				c := <- conns
-				cm[mes.S.Id] = c
-			}else {
-				if cm[mes.R] != nil{
-					network.UnicastSend(cm[mes.R], mes)
-				}else{
-					errorMessage := application.Message{
-						M: "The user you want to send is not connected",
-						S: server,
-					}
-					println("hi")
-					network.UnicastSend(cm[mes.S.Id], errorMessage)
-				}
 
-			}
-		}
-	}
-}
+

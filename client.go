@@ -19,7 +19,7 @@ func dial(server application.Process)(c net.Conn){
 	return c
 }
 
-func receive(c net.Conn){
+func receive(c net.Conn, control chan bool){
 	for {
 		decoder := gob.NewDecoder(c)
 		//Decode the message from server
@@ -28,7 +28,8 @@ func receive(c net.Conn){
 		if mes.M == "EXIT" {
 			fmt.Println("Exit the program.")
 			c.Close()
-			return
+			control <- true
+			break
 		}
 		fmt.Printf("Received '%s' from %s\n", mes.M, mes.S.Id)
 	}
@@ -42,19 +43,26 @@ func main(){
 	server.Port = arguments[2]
 	self.Id = arguments[3]
 	conn := dial(server)
+	control := make(chan bool)
 	initialMessage := application.Message{S: self, R: "server"}
 	network.UnicastSend(conn, initialMessage)
-	go receive(conn)
+	go receive(conn, control)
 	fmt.Print("please send application in this pattern: send 'username' 'YourMessage'\n")
 	println("enter EXIT to quit.")
 	for{
-		m:= application.GetInfo(self)
-		network.UnicastSend(conn, m)
-		if m.M == "EXIT"{
-			println("connection closed.")
+		select{
+		case <- control:
+			//termination signal from server, close as well.
 			conn.Close()
 			return
+		default:
+			m:= application.GetInfo(self)
+			network.UnicastSend(conn, m)
+			if m.M =="EXIT"{
+				println("connection closed.")
+				return
+			}
 		}
-		//termination signal from server, close as well.
+
 	}
 }
